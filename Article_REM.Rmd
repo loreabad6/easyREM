@@ -1,0 +1,638 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Relative Elevation Models (REM)
+
+Relative Digital Models (REM) is a digital representation of land surfaces to highlight and exposes its similarities and differences on the elevation of a particular region of interest (ROI). REM are particularly useful in geomorphology, identifying features such as meandes scrolls, foodplain terraces,REM allows a clearly visualization of subtle landforms and floodplains structures.
+
+PICTURE
+
+[Washignton Department of Ecology](https://apps.ecology.wa.gov/publications/documents/1406025.pdf) 2014, proposed a methodology based on REM for Planning Zones and Water Management, by identyfing channel migration zones - areas where a river channel is likely to migrate over time due to erosion, sediment deposition, and other fluvial processes.
+
+![Channel Migration Zones and Modern Valley Bottom mapping. WS Dept of Ecology.](.Rproj.user/shared/notebooks/Images/Autors_WS_Ecology.JPG)
+
+Another interesting use given for REM is highlithed by [Dan Carto](https://dancoecarto.com/creating-rems-in-qgis-the-idw-method) and expose a more artistical driven way to capture the beautiful details.
+
+PHOTO
+
+This notebook aims to foment R communitty/users to explore a development of a REM for a region of interest, merging on concepts of spatial data and manipulation.
+
+The steps of the consists in getting the digital elevation data and a river surface data. Many services and open-sources in R are available to acquire the data and the notebook will explore a few different paths.
+
+## Digital Elevation Model Data (DEM)
+
+DEM is a well-known type of spatial data which represents elevation in a certain space, usually characterized as spatial resolution. The USGS service has a popular DEM raster of 30m spatial resolution. However, Drones and Aerial Imagering by Lidar radar are pushing the data to even high level resolution.
+
+For the region of North America, the USGS provides tiles with spatial resolution of 1 meter. The [USGS web-service](https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer) map hosted in AWS and powered by ArcGIS is an easy way to visualized USGS Tiles.
+
+There are many interesting DEM datasets that can be explored in R, on this NOTEBOOK I explored a bit more about different sources from DEM datasets, includes nacional and regionals as New Zeland, Brazil and Austria. For the pourpose of the notebook, I decided to use 1 meter resolution data from USGS service.
+
+## Boundary Box (Bbox)
+
+The first step is deciding the region of interest to be analysed. Intrigued by understanding better the subtle landform of wetlands due to its important relation in the water cycle, I found it a interesting wetland zone in the legendary Mississipi River.
+
+```{r}
+##Set boundaries of the bbox
+xmin <- -91.25
+ymin <-  33.539864112135
+xmax <- -91.0999
+ymax <- 33.660
+
+## Set CRS
+crs = 4326  ##WGS84
+
+### Creating the BBox
+bbox <- create_bbox(xmin, xmax, ymin, ymax, crs)
+
+## Visualizing the bbox
+mapview::mapview(bbox,alpha=0.1,map.types ='Esri.WorldImagery')
+
+```
+
+Be aware that the tiles corresponds to a spatial resolution of 2 meters. Which may be computational heavy depending on your local machine. I would recomend do not cover areas bigger than 400km2 (20kmx20km). Also, to visualize subtle elevation it is interesting a more affordable scale.
+
+## Downloading DEM data
+
+To download the data we are going to use the terrainr package.
+
+```{r}
+library(progressr)
+with_progress(
+  dem <- terrainr::get_tiles(
+      data = bbox, #bbox of our ROI 
+      output_prefix = "rem",
+      side_length = NULL,
+      resolution = 2, #meters
+      services = "elevation",
+      verbose = TRUE
+      )
+)
+
+sprintf('The DEM tiles are compose by %s tile(s)',length(dem$elevation))
+
+```
+
+If you are finding dificulties to download, try bigger resolutions. Instead of 2 meters, try for 5 or even 10 meters. It may be to big the area you are looking at and this way may not be to most appropriate, and tilling your region would be interesting.
+
+```{r}
+##Load to a raster 
+dem_rast <- terra::rast(dem$elevation)
+
+print(terra::ext(dem_rast))
+```
+
+```{r}
+#Quick viz
+terra::plot(dem_rast)
+
+```
+
+## River Data
+
+Happyfully the R community is plented of ways to fetch river data, a lot of packages and open shapefile are available and here we discuss to ways to get it.
+
+You can
+
+### OSM Data - Rivers
+
+In order to create REM objects, it is an important step to mapped the centerline of river channels. Rivers data can be retrieved in many ways, the following process exemplifies how do it by
+
+```{r}
+# Retrieve OSM Data
+river <- osmdata::opq(
+    bbox = sf::st_bbox(bbox)
+) |>
+    osmdata::add_osm_feature(
+        key = "waterway",
+        value = "river"
+    ) |>
+  osmdata::osmdata_sf() ##Simple feature objects 
+
+river_sf <- river$osm_lines |> ## Intersect the bbox
+    sf::st_intersection(
+        bbox
+    ) |>
+    sf::st_union() |>
+    sf::st_cast(
+        "LINESTRING"
+    ) |>
+  sf::st_as_sf()
+```
+
+Visualize the rifer shapefile and the boundary box created.
+
+```{r}
+
+library(ggplot2)
+
+#Create a df from the raster
+dem_rast_df_agg <- as.data.frame(
+                           terra::aggregate(dem_rast, #aggregate to process
+                                             fact=10),
+                            xy=TRUE) |>
+  na.omit() 
+
+#New column
+dem_rast_df_agg$elevation <- dem_rast_df_agg$rem_3DEPElevation_1_1
+
+##Plot 
+ggplot()+
+    geom_raster(
+         data=dem_rast_df_agg, 
+          aes(x = x,
+              y = y,
+              fill = elevation
+          )
+      )+
+    geom_sf(data=river_sf,fill=NA, color='white',linewidth=1)+
+    scale_fill_viridis_c()+
+    theme_minimal()
+
+```
+
+### HydroSheeds - Rivers
+
+Another way to retrieve rivers shapefile is through the project [HydroSheed](https://www.hydrosheds.org/.). To facilitate the download, the package we develop contains a function that download it on your current folder as a .shp file. The function requires a region that is sourced from the HydroSheeds region mapping.
+
+More information can be reached here: LINK TO THE EXPLATION PAGE IN GITHUB LINK TO THE HYDROSHEEDS PROJECT
+
+The HydroSheed host the shp file an provides an API that facilitate the data acess. In order to handle it, I created a function that find out where you bbox is located regarding HydroSheed's regions and download it, saving in the current working directory.
+
+The glossary of HydroRivers are:
+
+| HydroSheed Region      | Glossary |
+|------------------------|----------|
+| South America          | sa       |
+| Asia                   | as       |
+| Europe and Middle East | eu       |
+| Artic                  | ar       |
+| Australiasia           | au       |
+| North America          | na       |
+| Global                 | global   |
+
+Detailed information can be find on this article: ARTICLE
+
+Determine in space where the bbox is:
+
+```{r}
+## Figure out where the bbox is located according the HydroSheeds Region. 
+determine_hydrosheds_region(sf::st_bbox(bbox)["xmin"],sf::st_bbox(bbox)["ymin"])
+```
+
+Download the data.
+
+```{r}
+#Download
+rivers_ar <- download_hydrorivers("na")
+
+print(rivers_ar)
+
+#Intersection - Filtering the rivers 
+rivers_intersect <- get_intersecting_rivers(rivers_ar,bbox)
+```
+
+Visualize
+
+```{r}
+library(ggplot2)
+
+##Plot 
+ggplot()+
+    geom_raster(
+         data=dem_rast_df_agg, 
+          aes(x = x,
+              y = y,
+              fill = elevation
+          )
+      )+
+    geom_sf(data=rivers_intersect,fill=NA, color='white',linewidth=1)+
+    scale_fill_viridis_c()+
+    theme_minimal()
+
+
+```
+
+### Comparing River spatial data results
+
+In order to understand which data is more appropriate to be used on this notebook, we are plotting and checking visualize the results.
+
+There are several approaches to treat and improve the linestring of the river. In order of simplicity of the tutorial, I will only choose the data source from OSMData and do not apply any treatment or enhacement process for the linestrings.
+
+```{r}
+library(ggplot2)
+
+##Plot 
+ggplot()+
+    geom_raster(
+         data=dem_rast_df_agg, 
+          aes(x = x,
+              y = y,
+              fill = elevation
+          )
+      )+
+    geom_sf(data=rivers_intersect,
+            aes(color = "HydroSheeds"),
+            fill=NA, 
+            #color='white',
+            linewidth=1)+
+    geom_sf(data=river_sf,
+            aes(color = "OSMData"),
+            fill=NA,
+            #color='pink',
+            linewidth=1)+
+    scale_fill_viridis_c(name = "Elevation")+
+  scale_color_manual(
+    name = "River Data Source",  # Title for the color legend
+    values = c("HydroSheeds" = "white", "OSMData" = "pink")
+  ) +
+  theme(legend.position = "right")
+```
+
+## Interpolation
+
+### Extract Elevation values
+
+Extracting elevation values is a strategy of populating the river shapefile with elevation from the DEM raster. It is an crucial step to develop the REM model.
+
+Depending on your computational capacity, resampling the raster is needed it. Also, with a resolution of 1 meter, for river changed capted trhough each point was finer, less than 1 meter, and for the whole area analysis is too computational expensive.
+
+```{r}
+#Exclude the small riverway that come with the OSM data. 
+river_sf <- river_sf[1:2,]
+
+## Resampling if needed
+## My computer does not handle well large datasets. I will resampling
+dem_rast_agg <- terra::aggregate(
+    dem_rast,
+    fact = 2
+)
+
+river_elev <- terra::extract(
+    x = dem_rast_agg,
+    y = terra::vect(river_sf),
+    xy = TRUE,
+    na.rm = TRUE
+) |>
+    na.omit()
+
+names(river_elev)[2] <- "elevation" #Rename the column to elevation
+print(c(nrow(river_elev),'elevation points were extracted'))
+
+```
+
+The number of points extract from the raster is not too much, however the next steps of IDW are quite computational heavy , so I decided to adopt a redutor on our dataframe to work with less points.
+
+This is not a mandatory step
+
+The following code executes a reduction in our dataframe take reduces by half, using a density-based sampling, avoiding a drastical changing in the distribution of our data.
+
+```{r}
+
+### Reduce by half the dataframe
+
+## Create df
+df_river <- as.data.frame(river_elev)
+## New Column flooring the elevation values to nearest 0.1
+df_river$elev_treat <- floor(df_river$elevation * 10) / 10
+
+# create a histogram of elevations to identify the most frequent intervals
+hist_elev <- hist(df_river$elev_treat, breaks = "sturges", plot = FALSE)
+
+# Create a density-based weighting
+point_density <- hist_elev$counts[findInterval(df_river$elev_treat, hist_elev$breaks)]
+
+# Create a sampling probability that is inverse to the density
+# (less frequent elevations have higher probability of being kept)
+sampling_prob <- 1 / (point_density + 1)  # adding 1 to avoid division by zero
+sampling_prob[is.na(sampling_prob)] <- 1  # Replace any NAs with 1
+sampling_prob[is.infinite(sampling_prob)] <- max(sampling_prob[is.finite(sampling_prob)])  # Handle infinites
+
+# Sample the points 
+n_points_to_keep <- floor(nrow(df_river) * 0.5)  # keeping 50% 
+selected_indices <- sample(1:nrow(df_river), 
+                         size = n_points_to_keep, 
+                         prob = sampling_prob)
+
+# Create new reduced dataset
+df_river_reduced <- df_river[selected_indices,]
+# Sort by elevation to verify distribution
+df_river_reduced <- df_river_reduced[order(df_river_reduced$elevation),]
+
+
+```
+
+Visualize the data
+
+```{r}
+library(ggplot2)
+# Create a plot comparing both sets of points
+ggplot() +
+  geom_point(data = df_river, aes(x = x, y = y), color = "blue", size = 1, alpha = 1.0) +
+  geom_point(data = df_river_reduced, aes(x = x, y = y), color = "red", size = 0.2,alpha=0.5) +
+  theme_minimal() +
+  labs(title = "River Points Comparison",
+       subtitle = paste0("Original: ", nrow(df_river), " points, Reduced: ", nrow(df_river_reduced), " points"),
+       x = "Longitude",
+       y = "Latitude")
+hist(df_river_reduced$elevation,
+     main='Histogram of Reduced River')
+hist(df_river$elevation,
+     main='Histogram of River
+     
+     ')
+```
+
+### Inverse Distance Weighting - IDW Method
+
+Inverse distance weighting is a spatial technique and well-spreaded over the geospatial field. IDW takes into consideration that close points are more weighted than relative far points. points that are further away get less weight in predicting a value a location The IDW for delineation of Bottom Valley Channel (BVC) was used by the Washington Department of Ecology and its studies can be found it here: <https://apps.ecology.wa.gov/publications/documents/1406025.pdf>
+
+In order to apply the method on R, the package gstat is called an creates the IDW interpolation by the gstat object.
+
+```{r}
+
+## Create IDW model
+idw_model <- gstat::gstat(
+  formula = elevation ~ 1,
+  locations = ~x + y,
+  data = df_river_reduced,
+  nmax = nrow(df_river_reduced)
+)
+
+## Predict Values by Interpolating 
+river_surface <- terra::interpolate(
+  dem_rast_agg,
+  idw_model,
+  crs=terra::crs(dem_rast_agg)
+)
+```
+
+## Relative Elevation Model (REM)
+
+After the interpolation through IDW, the REM is just the subtraction of the Digital Elevation Model with the interpolate raster.
+
+```{r}
+# REM
+rem <- dem_rast_agg - river_surface
+
+rem_final <- terra::resample(
+    rem, dem_rast
+)
+
+#Vis
+terra::plot(rem_final)
+```
+
+### Visualization and Mapping
+
+[Milos Agathon](https://github.com/milos-agathon) has amazing mapping visualization in 2D and 3D sample codes, most of them developt in R. The next few lines of code was inspired by his brilliant work.
+
+To visualize, it is easier to fetch as data frame
+
+```{r}
+#df
+rem_df <- as.data.frame(
+    rem_final,
+    xy = TRUE
+)
+
+# Change column name
+names(rem_df)[3] <- "elevation"
+
+#Head
+head(rem_df)
+
+```
+
+### Pallette
+
+In order to composite a compelling visualization, the next lines of code helps with creating a pallette.
+
+```{r}
+#Number of colours in the pallette
+num_of_pallete_tones <- 8
+
+
+### Selecting Palletes 
+cols <- hcl.colors(
+    palette = "vik",
+    num_of_pallete_tones, rev = TRUE
+)
+
+#Vis 
+pie(rep(
+    1, length(cols)
+), col = cols)
+
+##Final Pallette 
+pal <- c(cols[rev(c(1:8))],"#000") # Add black to the pallette
+
+#Vis
+pie(rep(
+    1, length(pal)
+), col = pal)
+
+
+```
+
+### Cutoff elevation value
+
+In order to mask high elevation and highlitghs only the subtle elevation values that are important to visualize on the REM, I will understand what is the distribution of the data in the REM
+
+```{r}
+# Calculate percentiles
+percentiles <- seq(0, 100, by=5)  # From 0% to 100% in steps of 5%
+thresholds <- quantile(rem_df$elevation, 1 - percentiles/100)  # Get threshold values for each percentile
+
+# Create a data frame for plotting
+plot_data <- data.frame(
+  Percentile = percentiles,
+  Threshold = thresholds
+)
+
+# Plot
+library(ggplot2)
+
+ggplot(plot_data, aes(x=Threshold, y=Percentile)) +
+  geom_line(color="blue", size=1) +
+  geom_point(color="red", size=3) +
+  labs(
+    title="Percentage Distribution of Values",
+    subtitle="Shows the percentage of values exceeding a given threshold",
+    x="Value Threshold (meters)",
+    y="Percentage of Values Exceeding Threshold (%)"
+  ) +
+  # Add horizontal lines at 20% and 50% for reference
+  geom_hline(yintercept=75, linetype="dashed", color="darkgreen") +
+  geom_hline(yintercept=50, linetype="dashed", color="darkgreen") +
+  # Add vertical reference lines at the thresholds corresponding to 20% and 50%
+  geom_vline(xintercept=quantile(rem_df$elevation, 0.25), linetype="dashed", color="darkgreen") +
+  geom_vline(xintercept=quantile(rem_df$elevation, 0.5), linetype="dashed", color="darkgreen") +
+  # Add annotations
+  annotate("text", 
+           x = quantile(rem_df$elevation, 0.25)-1, 
+           y = 75, 
+           label = paste0("75% > ", round(quantile(rem_df$elevation, 0.25), 1)), 
+           hjust = 1) +
+  annotate("text", 
+           x = quantile(rem_df$elevation, 0.5) - 1, 
+           y = 52, 
+           label = paste0("50% > ", round(quantile(rem_df$elevation, 0.5), 1)), 
+           hjust = 1) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face="bold"),
+    axis.title = element_text(face="bold")
+  )
+
+##Simple HIst
+hist(rem_df$elevation,
+     main='Histogram - REM Elevation')
+```
+
+Based on the analysis above, I decided to mask all values above 4 meters. This step is not part of the study elaborate by Washington Ecology Department, however, it was choice in order to enhance the visualization of the data.
+
+```{r}
+library(dplyr)
+
+#Create a cutoff value 
+cutoff <- 4 #meters
+
+# Set bounds for the elevation ranges
+rem_df$elevation_bounded <- case_when(
+                                rem_df$elevation > cutoff ~ cutoff,
+                                #rem_df$elevation < 0 ~ 0,
+                                TRUE ~ rem_df$elevation
+)
+
+# log transformation
+epsilon <- 1e-10
+rem_df$elevation_log <- log1p(pmax(rem_df$elevation_bounded, epsilon))
+
+# manual breaks
+max_log <- log1p(cutoff)  # Log of maximum cutoff value 
+##breaks <- classInt::classIntervals(
+#    rem_df$elevation_log,
+#    n = 9,
+#    style = "fisher",
+#    largeN=TRUE,
+#    samp_prop = 0.4
+#)$brks
+breaks <- seq(0, cutoff, length.out = length(pal))
+breaks
+```
+
+Visualizating
+
+```{r}
+theme_for_the_win <- function() {
+    theme_minimal() +
+        theme(
+            axis.line = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank(),
+            axis.text.x = element_blank(),
+            axis.text.y = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            legend.position = "none",
+            plot.background = element_rect(
+                fill = "white", color = NA
+            ),
+            plot.margin = unit(
+                c(
+                    t = 0, r = 0,
+                    l = 0, b = 0
+                ), "cm"
+            )
+        )
+}
+
+```
+
+```{r}
+rem_plot <- ggplot(
+    rem_df, 
+    aes(x = x, y = y, fill = elevation_log)
+) +
+    geom_raster() +
+    scale_fill_gradientn(
+        breaks = breaks,
+        colours = pal,
+        #limits = c(0, max_log),  # Set limits explicitly
+        name = "",
+        labels = round(expm1(breaks), 1)  # Convert log values back to         original scale for labels 
+    ) +
+    theme_for_the_win()
+
+print(rem_plot)
+```
+
+```{r}
+rem_plot <- ggplot(
+    rem_df, aes(
+        x = x, y = y,
+        fill = elevation
+    )
+) +
+    geom_raster() +
+    scale_fill_gradientn(
+        breaks = breaks,
+        colours = pal,
+        name = "Elevation (m)",
+       # limits = c(0, cutoff),  # Set limits explicitly
+        labels = sprintf("%.2f", breaks)  # Using %.0f to round 
+    ) +
+    theme_for_vis()
+
+rem_plot
+```
+
+```{r}
+#mask
+cutoff<-4 #meters
+
+breaks <- classInt::classIntervals(
+    rem_df$elevation,
+    n = 9,
+    style = "fisher"
+)$brks
+
+rem_plot <- ggplot() +
+    geom_raster(
+        data=rem_df, 
+        aes(
+          x = x, y = y,
+          fill = elevation
+        )
+    ) +
+    scale_fill_gradientn(
+        breaks = breaks,
+        colours = pal,
+        name = "Elevation (m)",
+        labels = sprintf("%.1f", breaks)  # Using %.0f to round 
+    ) +
+    theme_for_vis()
+
+rem_plot
+```
+
+### Contour Lines
+
+You can easily created contour lines and use it as a mask over the rast
+
+```{r}
+## Contour Line
+contour_line <- terra::contour(rem_final)
+
+```
+
+```{r}
+breaks <- classInt::classIntervals(
+    rem_df$elevation,
+    n = 9,
+    style = "fisher"
+)$brks
+breaks
+```
