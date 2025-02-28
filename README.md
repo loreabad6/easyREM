@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 # easyREM
 
@@ -26,3 +27,7 @@ library(easyREM)
 ## basic example code
 ```
 
+=======
+# easyREM
+easyREM is an R package created to facilitate the composition of Relative Elevation Models (REM). By working with Digital Elevation Models and a region of interest, the package makes it easier to create and plot REMs. 
+>>>>>>> 9648b3a24ee0a2a156677ba1306055fca5823dbc
