@@ -1,8 +1,14 @@
+---
+output: github_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
 
-# pkgdown [<img src="man/images/DanCoeCarto_REM.png" data-align="right" alt=""
-width="100" />](https://dancoecarto.com/)
+# pkgdown [![Dan Carto. Alaska DEM](man/images/DanCoeCarto_REM.png){align="right" alt="" width="100"}](https://dancoecarto.com/)
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 **{easyREM}** is an R package designed to simplify the creation of
@@ -20,16 +26,16 @@ of the package.
 
 The package offers the following functionalities through its functions:
 
-- **Digital Elevation Model (DEM):** The package retrieves DEM data from
-  the USGS service, offering a resolution of 1 meter for North America
-  and 30 meters for the rest of the world.
+-   **Digital Elevation Model (DEM):** The package retrieves DEM data
+    from the USGS service, offering a resolution of 1 meter for North
+    America and 30 meters for the rest of the world.
 
-- **River Lines:** Shapefiles for river lines are obtained from two
-  primary sources:
+-   **River Lines:** Shapefiles for river lines are obtained from two
+    primary sources:
 
-  - OpenStreetMap (OSM) Data
+    -   OpenStreetMap (OSM) Data
 
-  - The HydroSHEDS Project.
+    -   The HydroSHEDS Project.
 
 The interpolation method used in the package is the well-known
 Inverse-Distance Weighting (IDW) technique, which is based on research
@@ -42,9 +48,9 @@ sharing knowledge is a core principle of our society.
 ## Article
 
 For a more detailed introduction to REMs, the methodology behind them,
-and further reading, please refer to this [Article](#article). It also
-serves as a guide to exploring the power of R Notebooks and the
-open-source R community.
+and further reading, please refer to this [Article]. It also serves as a
+guide to exploring the power of R Notebooks and the open-source R
+community.
 
 ## Installation
 
