@@ -22,9 +22,9 @@ create_bbox <- function(xmin, xmax, ymin, ymax, crs) {
                                    list(cbind(
                                               c(xmin, xmax, xmax, xmin, xmin),
                                               c(ymin, ymin, ymax, ymax, ymin)
-                                              )),
-                                   crs = crs
-                                    )
+                                              ))
+                                    ),
+                     crs=crs
                        )
   return(bbox)
  }
