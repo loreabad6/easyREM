@@ -1,5 +1,6 @@
 
-# pkgdown [<img src="man/images/DanCoeCarto_REM.png" data-align="right" alt=""
+# pkgdown 
+[<img src="man/images/DanCoeCarto_REM.png" data-align="right" alt=""
 width="100" />](https://dancoecarto.com/)
 
 <!-- badges: start -->
