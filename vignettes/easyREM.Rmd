@@ -27,11 +27,6 @@ remotes::install_github("emanuel-gf/easyREM")
 library(easyREM)
 ```
 
-Now, we call the library
-
-```{}
-```
-
 ## Creating Boundaries (bbox)
 
 To delimitate the boundaries of the region of interest (ROI) I used the ArcGIS web map to look at the USGS tiles and its covering regions stored on the web-service.

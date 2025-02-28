@@ -1,4 +1,4 @@
-#' Create a Bounding Box (BBox) Polygon
+#' Create a Bounding Box (bbox) Polygon
 #'
 #' This function creates a bounding box polygon based on the given minimum and maximum coordinates.
 #'
@@ -14,8 +14,10 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' Create a bounding box
 #' bbox <- create_bbox(xmin = -180, xmax = 180, ymin = -90, ymax = 90, crs = 4326)
+#' }
 create_bbox <- function(xmin, xmax, ymin, ymax, crs) {
   bbox <- sf::st_sfc(
                      sf::st_polygon(

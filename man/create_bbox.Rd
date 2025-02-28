@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_bbox.R
 \name{create_bbox}
 \alias{create_bbox}
-\title{Create a Bounding Box (BBox) Polygon}
+\title{Create a Bounding Box (bbox) Polygon}
 \usage{
 create_bbox(xmin, xmax, ymin, ymax, crs)
 }
@@ -24,6 +24,8 @@ An `sfc` object representing the bounding box polygon.
 This function creates a bounding box polygon based on the given minimum and maximum coordinates.
 }
 \examples{
+\dontrun{
 Create a bounding box
 bbox <- create_bbox(xmin = -180, xmax = 180, ymin = -90, ymax = 90, crs = 4326)
+}
 }

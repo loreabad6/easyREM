@@ -1,14 +1,13 @@
 Package: easyREM
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Relative Elevation Models at ease
 Version: 0.1.0
-Authors@R: c(
-    person("Emanuel Goulart",
-      email = "emanuel.goulart-farias@stud.plus.ac.at",
-      role = c("aut")
-    )
-  )
-Mantainer: Emanuel Goulart 
+Authors@R:  c(person(given = "Emanuel",
+             family = "Goulart",
+             role = c("aut", "cre"),
+             email = "emanuel.goulart-farias@stud.plus.ac.at",
+             comment = c(ORCID = "0000-0001-6336-8628"))
+             )
 Description: Facilitates the creation of Relative Elevation Models (REM),
     in the form of functions that enable spatial interactions between rasters of 
     Digital Elevation Model (DEM) and a sf by a given area of interest. 
@@ -19,7 +18,8 @@ RoxygenNote: 7.3.2
 Imports: 
     sf,
     terra,
-    utils
+    utils,
+    osmdata
 Suggests: 
     knitr,
     rmarkdown
