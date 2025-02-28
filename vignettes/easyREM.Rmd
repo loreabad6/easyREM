@@ -10,7 +10,7 @@ The REM are used as a methodology to delineating Planning-Level Channel Migratio
 
 [CMZ - Washington Ecology Dept.](https://apps.ecology.wa.gov/publications/documents/1406025.pdf)
 
-[![Channel Migration Zones and Modern Valley Bottom mapping. WS Dept of Ecology.](figures/Autors_WS_Ecology.png)](https://apps.ecology.wa.gov/publications/documents/1406025.pdf)
+[![Channel Migration Zones and Modern Valley Bottom mapping. WS Dept of Ecology.](Autors_WS_Ecology.png)](https://apps.ecology.wa.gov/publications/documents/1406025.pdf)
 
 This notebook aims to help everyone interest in hydrology, water and urban management.
 

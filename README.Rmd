@@ -5,7 +5,9 @@ editor_options:
     wrap: 72
 ---
 
-# pkgdown [![Dan Carto. Alaska DEM](man/images/DanCoeCarto_REM.png){align="right" alt="" width="100"}](https://dancoecarto.com/)
+# pkgdown
+
+![](man/figures/DanCoeCarto_REM.png){align="right" width="120"}
 
 **{easyREM}** is an R package designed to simplify the creation of
 Relative Elevation Models (REMs). By utilizing Digital Elevation Models
