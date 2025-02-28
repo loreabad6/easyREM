@@ -10,15 +10,11 @@ By working with Digital Elevation Models and a region of interest, the package m
 ## Installation
 
 You can install the development version of easyREM from [GitHub](https://github.com/) using the library remote:
-
+Actually the package is not available on CRAN. In order to use it, through remotes pkg. 
 
 ```r
 library(remotes)
 remotes::install_github("emanuel-gf/easyREM")
-```
-``` r
-# install.packages("pak")
-pak::pak("emanuel-gf/easyREM")
 ```
 
 ## Example
