@@ -5,9 +5,7 @@ editor_options:
     wrap: 72
 ---
 
-# pkgdown
-
-![](man/figures/DanCoeCarto_REM.png){align="right" width="120"}
+# easyREM ![](man/figures/DanCoeCarto_REM.png){width="120" fig.align="right"}
 
 **{easyREM}** is an R package designed to simplify the creation of
 Relative Elevation Models (REMs). By utilizing Digital Elevation Models
@@ -46,7 +44,7 @@ sharing knowledge is a core principle of our society.
 ## Article
 
 For a more detailed introduction to REMs, the methodology behind them,
-and further reading, please refer to this [Article]. It also serves as a
+and further reading, please refer to this Article. It also serves as a
 guide to exploring the power of R Notebooks and the open-source R
 community.
 

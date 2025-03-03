@@ -18,7 +18,9 @@ This notebook aims to help everyone interest in hydrology, water and urban manag
 
 First we install the easyREM library hosted in github.
 
-```{r, eval = FALSE}
+```{r, results='hide', echo=FALSE, message=FALSE}
+
+
 library(remotes)
 remotes::install_github("emanuel-gf/easyREM")
 library(easyREM)
@@ -30,7 +32,7 @@ To delimitate the boundaries of the region of interest (ROI) I used the ArcGIS w
 
 The points represents the left-down and right-up corners of the ROI.
 
-```{r, eval = FALSE}
+```{r}
 ##Set boundaries of the bbox
 xmin <- -93.382
 ymin <- 34.2653
@@ -46,6 +48,7 @@ bbox <- create_bbox(xmin, xmax, ymin, ymax,crs=crs)
 
 ```{r, eval = FALSE}
 ## Visualizing the bbox
+mapview::mapviewOptions(fgb = FALSE, georaster = FALSE)
 mapview::mapview(bbox,alpha=0.1,map.types ='Esri.WorldImagery')
 
 ```
@@ -54,13 +57,13 @@ mapview::mapview(bbox,alpha=0.1,map.types ='Esri.WorldImagery')
 
 ### USGS DEM
 
-The USGS web-service provides an easy way to download its data from
+The USGS web service provides an easy way to download its data via API. The terrainR library does a magnificent job of utilizing this service.
 
 Download the files from the USGS service.
 
-Depending the size of the ROI, it may take it a while.
+***Disclaimer*****:** Try to reduce the size of your area of interest. REMs are more visually pleasing for smaller areas of interest. Additionally, depending on the size of the ROI, it may take a while to download and process.
 
-```{r, eval = FALSE}
+```{r}
 library(progressr)
 handlers("progress")
 with_progress(
@@ -77,9 +80,11 @@ dem <- terrainr::get_tiles(
 sprintf('The DEM tiles are compose by %s tile(s)',length(dem$elevation))
 ```
 
-From USGS service, each tile has an size of 7948X7948, with a spatial resolution of 1meter, returns a tile of nearly 8 km.
+From the USGS service, each tile has a size of approximately 8km.
 
-Sometimes, the ROI is covered by more than one tile, and it is necessary to composite a mosaic of the tiles to deal it properly. To properly mosaic, some attributes needs to be consider such as matching the Spatial Resolution and CRS. The function deals with mosaicing objects, the only variable to pass is a list that is provided from the terrainR get_tiles function. In case you already have download the tiles, you can easily recreate the list by running the following code.
+Sometimes, the ROI is covered by more than one tile, making it necessary to composite a mosaic of the tiles for proper handling. To properly mosaic, some attributes need to be considered, such as matching the spatial resolution and CRS. The function present in the *easyREM* package deals with merging objects.
+
+For the purpose of this tutorial, the chosen ROI only requires one tile and does not need merging.
 
 ```{r, eval = FALSE}
 ##Converting to terra objects
@@ -90,31 +95,35 @@ if (length(dem$elevation)==1) {
 } else {
   ## For more than one tile is necessary to create a composition
   dem_rast <- process_dem_tiles(dem,verbose=TRUE)
+  
+  ### Merge the raster
+  dem_mosaic <- terra::merge(dem_rast[[1]],dem_rast[[2]],dem_rast[[3]],
+                              #dem_rast[[4]],#dem_rast[[5]],dem_rast[[6]],
+                              filename='merged.tif',
+                              overwrite=TRUE)
 }
 ```
 
-Deals with ROI bigger than only one tile. Be aware that big ROI areas are not well representative for REM.
-
-```{r, eval = FALSE}
-if (length(dem$elevation)>1){
-  ### Merge the raster
-dem_mosaic <- terra::merge(dem_rast[[1]],dem_rast[[2]],dem_rast[[3]],
-                           dem_rast[[4]],
-                           #dem_rast[[5]],dem_rast[[6]],
-                           filename='merged.tif',
-                           overwrite=TRUE)
-} 
-
-
+```{r}
+### In case you have already downloaded the tiles
+#dem <- c()
+#dem$elevation <- list.files(
+#  "your_path",
+#  pattern = "\\.tif",
+#  recursive=FALSE
+#)
 ```
 
 ## River Line
 
-In order to create REM objects, it is an important step to mapped the center-line of river channels.
+In order to create REM objects, centerline of river channels are needed. Rivers data can be retrieved in many ways, the following process exemplifies how do it by:
 
-### OSM Data
+-   OSM DATA
+-   HydroSheeds
 
-```{r, eval = FALSE}
+### OSM Data - Rivers
+
+```{r echo=FALSE, warning=FALSE}
 # Retrieve OSM Data
 river <- osmdata::opq(
     bbox = sf::st_bbox(bbox)
@@ -137,9 +146,9 @@ river_sf <- river$osm_lines |> ## Intersect the bbox
 
 ```
 
-Visualize the river shapefiles retrieved from OSM
+Visualize the river shapefile retrieved from OSM
 
-```{r, eval = FALSE}
+```{r plot_osm_river_1, echo=FALSE}
 ##Visualize the river 
 terra::plot(dem_rast)  
 plot(
@@ -153,17 +162,17 @@ plot(
 
 ### HydroSheed
 
-Another way to retrieve rivers shapefile is through the project HydroSheeds <https://www.hydrosheds.org/>. To facilitate the process, the package contain a function that download it on your current folder as a .shp file. The function requires a region that is sourced from the HydroSheeds region mapping, where Global and regions Africa, South America, Asia, Australia/Oceania, Europe, North America. More information can be reached here: LINK TO THE EXPLATION PAGE IN GITHUB LINK TO THE HYDROSHEEDS PROJECT
+Another way to retrieve a rivers shapefile is through the [HydroSheeds](https://www.hydrosheds.org) project. To facilitate the process, *easyREM* package contains a function that downloads it to your current folder as a .shp file. The function requires a region that is sourced from the HydroSheeds region mapping, which includes Global and regions such as Africa, South America, Asia, Australia/Oceania, Europe, and North America.
 
-In order to figure out where our region of interest is located regarding the atlas provided by HydroSheeds project, a function is called to check it.
+To determine where your region of interest is located according to the atlas provided by the HydroSheeds project, a function is called to check it.
 
 ```{r, eval = FALSE}
-determine_hydrosheds_region(sf::st_bbox(bbox)["xmin"],sf::st_bbox(bbox)["ymin"])
+easyREM::determine_hydrosheeds_region(sf::st_bbox(bbox)["xmin"],sf::st_bbox(bbox)["ymin"])
 ```
 
-So, the correct HydroSheed Rivers dataset is downloaded
+So, the correct HydroSheed Rivers dataset is downloaded.
 
-The glossay of HydroRivers are:
+The glossary of HydroRivers is:
 
 -   sa = South America
 
@@ -178,6 +187,8 @@ The glossay of HydroRivers are:
 -   na = North America
 
 -   af = Africa
+
+To download all the respectivelly shapefiles from HydroSheeds project, the another function in *easyREM* function deals with it.
 
 ```{r, eval = FALSE}
 rivers_ar <- download_hydrorivers("na")
@@ -204,17 +215,19 @@ plot(
 )
 ```
 
-Due the fact the HydroSheeds project been generate by the USGS DEM-30meters, the rivers are delineate by the accumulation flow and for the flats areas the accumulation flow algoritm does not exactly matches the center of a river line. To deal with the situation in the most accuracy as possible, it is possible to create the river centerline with several ways and approaches propoused by Remote Sensing imagery.
+Due to the fact that the HydroSheeds project is generated by the USGS DEM-30 meters, the rivers are delineated by accumulation flow algorithms. For higher spatial resolution, the river line does not accurately match the exact center of the river.
 
-For the sense of propouse on this tutorial, we are gonna to attach at the OSM data due the fact that it matches enough.
+To address this situation as accurately as possible, it is possible to create the river centerline using several methods and approaches proposed by remote sensing imagery.
+
+For the purpose of this tutorial, we are going to use OSM data because it matches well enough.
 
 ## Extract Values
 
-Extracting elevation values is a strategy of populating the river shapefile with elevation from the DEM raster. It is an crucial step to develop the REM model.
+Extracting elevation values is a strategy for populating points that matches the river shapefile with elevation from the DEM raster. It is an crucial step to develop the REM model.
 
-Depending on your computational capacity, resampling the raster is needed it. Also, with a resolution of 1 meter, for river changed capted trhough each point was finer, less than 1 meter, and for the whole area analysis is too computational expensive.
+Depending on your computational capacity, resampling the raster is needed it.
 
-```{r, eval = FALSE}
+```{r eval=FALSE, cache=TRUE}
 ## Resampling the raster in case your laptop can not process. 
 #dem_rast_agg <- terra::aggregate(
 #    dem_rast,
@@ -237,9 +250,9 @@ print(c(nrow(river_elev),'elevation points were extracted'))
 
 ### IDW - Inverse Distance Weighting
 
-Inverse distance weighting is a spatial technique and well-spreaded over the geospatial field. IDW takes into consideration that close points are more weighted than relative far points. points that are further away get less weight in predicting a value a location The IDW for delineation of Bottom Valley Channel (BVC) was used by the Washington Department of Ecology and its studies can be found it here: <https://apps.ecology.wa.gov/publications/documents/1406025.pdf>
+Inverse distance weighting (IDW) is a widely used spatial technique in the geospatial field. IDW considers that closer points are more heavily weighted than relatively distant points. Points that are further away receive less weight in predicting a value at a location. The Washington Department of Ecology used IDW for delineating the Bottom Valley Channel (BVC), and its studies can be found here: <https://apps.ecology.wa.gov/publications/documents/1406025.pdf>
 
-In order to apply the method on R, the package gstat is called an creates the IDW interpolation by the gstat object.
+In order to apply the method on R, the package *gstat* is called and creates the IDW interpolation.
 
 ```{r, cache=TRUE, eval = FALSE}
 ## Create IDW model
@@ -263,12 +276,10 @@ river_surface <- terra::interpolate(
 The relative elevation model is nothing more than the subtraction of the river interpolation raster by the digital elevation model.
 
 ```{r, eval = FALSE}
-terra::plot(river_surface)
-```
-
-```{r, eval = FALSE}
+# Creates the REM
 rem <- dem_rast - river_surface
 
+# Resample
 rem_final <- terra::resample(
     rem, dem_rast
 )
@@ -287,9 +298,9 @@ head(rem_df)
 names(rem_df)[3] <- "elevation"
 ```
 
-Computes logarithms from elevation
+Computes elevation's logarithms.
 
-```{r,cache=TRUE, eval = FALSE}
+```{r eval=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
 
 epsilon <- 1e-10
 
@@ -307,6 +318,8 @@ breaks <- classInt::classIntervals(
     samp_prop = 0.1
 )$brks
 ```
+
+Create the pallette
 
 ```{r, eval = FALSE}
 ### Let`s make a quick plot to visualize the REM
@@ -326,29 +339,7 @@ pal <- cols[c(1, 2:12)]
 ```
 
 ```{r, eval = FALSE}
-theme_for_the_win <- function() {
-    theme_minimal() +
-        theme(
-            axis.line = element_blank(),
-            axis.title.x = element_blank(),
-            axis.title.y = element_blank(),
-            axis.text.x = element_blank(),
-            axis.text.y = element_blank(),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            legend.position = "none",
-            plot.background = element_rect(
-                fill = "white", color = NA
-            ),
-            plot.margin = unit(
-                c(
-                    t = 0, r = 0,
-                    l = 0, b = 0
-                ), "cm"
-            )
-        )
-}
-
+## Theme
 theme_for_vis <- function() {
     theme_minimal() +
         theme(
@@ -360,7 +351,7 @@ theme_for_vis <- function() {
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
             legend.position = "right",  
-            legend.title = element_blank(),
+            legend.title = element_text(size = 10, hjust = 1),
             legend.key.height = unit(1.5, "cm"),
             legend.key.width = unit(0.5, "cm"),
             plot.background = element_rect(
@@ -376,20 +367,27 @@ theme_for_vis <- function() {
 }
 ```
 
+Plot
+
 ```{r,cache=TRUE, eval = FALSE}
+library(ggplot2)
 rem_plot <- ggplot(
-                    rem_df, aes(
-                    x = x, y = y,
-                    fill = elevation_log
-                    )
-                  )+
-                     geom_raster() +
-                     scale_fill_gradientn(
-                         breaks = breaks,
-                         colours = pal,
-                         name = ""
-                     ) +
-                     theme_for_the_win()
+    rem_df, aes(
+        x = x, y = y,
+        fill = elevation_log
+    )
+) +
+    geom_raster() +
+    scale_fill_gradientn(
+        breaks = breaks,
+        colours = pal,
+        name = "Elevation (m)",
+        # Transform back using expm1() which is the inverse of log1p()
+        labels = sprintf("%.2f", expm1(breaks))  # Using %.0f to round to whole numbers
+    ) +
+   labs(title = "Relative Elevation Models") +  
+    theme_for_vis()
+
 rem_plot
 ```
 
@@ -399,3 +397,19 @@ Easily creating a contour line for the REM mode
 ## Contour Line
 contour_line <- terra::contour(rem_final)
 ```
+
+Thanks for reading!
+
+In case of bugs and further development please contact.
+
+--------
+
+There are many R materials everyone and for everyone!
+
+I am attaching further readings and very interesting libraries and projects relating to R:
+
+-   [R-spatial.org](https://r-spatial.org/)
+
+-   [OS-Geo-R](https://www.osgeo.org/projects/r-spatial/)
+
+-   [Geocomputation with R](https://r.geocompx.org/)
