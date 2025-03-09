@@ -1,5 +1,5 @@
 
-# pkgdown 
+# easyREM
 [<img src="man/images/DanCoeCarto_REM.png" data-align="right" alt=""
 width="100" />](https://dancoecarto.com/)
 
