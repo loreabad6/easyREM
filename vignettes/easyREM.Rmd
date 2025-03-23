@@ -67,7 +67,7 @@ Download the files from the USGS service.
 
 ***Disclaimer*****:** Try to reduce the size of your area of interest. REMs are more visually pleasing for smaller areas of interest. Additionally, depending on the size of the ROI, it may take a while to download and process.
 
-```{r}
+```{r eval=FALSE}
 library(progressr)
 handlers("progress")
 with_progress(
@@ -88,14 +88,23 @@ From the USGS service, each tile has a size of approximately 8km.
 
 Sometimes, the ROI is covered by more than one tile, making it necessary to composite a mosaic of the tiles for proper handling. To properly mosaic, some attributes need to be considered, such as matching the spatial resolution and CRS. The function present in the *easyREM* package deals with merging objects.
 
-For the purpose of this tutorial, the chosen ROI only requires one tile and does not need merging.
+For the purpose of this tutorial, the chosen ROI only requires one tile and does not need merging and it is available in easyREM as:
 
-```{r, eval = FALSE}
-##Converting to terra objects
+```{r}
+dem <- c()
+dem$elevation <- system.file(
+    "extdata",
+    "rem_3DEPElevation_1_1.tif", 
+    package = "easyREM"
+  )
+```
+
+
+```{r}
+## Converting to terra objects
 ## In case the bbox have only one tile.
 if (length(dem$elevation)==1) {
   dem_rast <- terra::rast(dem$elevation)
-  # dem_rast <- terra::rast("rem_3DEPElevation_1_1.tif")
 } else {
   ## For more than one tile is necessary to create a composition
   dem_rast <- process_dem_tiles(dem,verbose=TRUE)
@@ -108,16 +117,6 @@ if (length(dem$elevation)==1) {
 }
 ```
 
-```{r}
-### In case you have already downloaded the tiles
-#dem <- c()
-#dem$elevation <- list.files(
-#  "your_path",
-#  pattern = "\\.tif",
-#  recursive=FALSE
-#)
-```
-
 ## River Line
 
 In order to create REM objects, the centerline of river channels are needed. Rivers data can be retrieved in many ways, the following process exemplifies how do it with:
@@ -127,7 +126,7 @@ In order to create REM objects, the centerline of river channels are needed. Riv
 
 ### OSM Data - Rivers
 
-```{r echo=FALSE, warning=FALSE}
+```{r warning=FALSE}
 # Retrieve OSM Data
 river <- osmdata::opq(
     bbox = sf::st_bbox(bbox)
@@ -152,7 +151,7 @@ river_sf <- river$osm_lines |> ## Intersect the bbox
 
 Visualize the river shapefile retrieved from OSM
 
-```{r plot_osm_river_1, echo=FALSE}
+```{r plot_osm_river_1}
 ##Visualize the river 
 terra::plot(dem_rast)  
 plot(
@@ -231,7 +230,7 @@ Extracting elevation values is a strategy for populating points that matches the
 
 Depending on your computational capacity, resampling the raster to a coarser resolution is needed.
 
-```{r eval=FALSE, cache=TRUE}
+```{r}
 ## Resampling the raster in case your laptop can not process. 
 #dem_rast_agg <- terra::aggregate(
 #    dem_rast,
@@ -258,7 +257,7 @@ Inverse distance weighting (IDW) is a widely used spatial technique in the geosp
 
 In order to apply the method on R, the package *gstat* is called and creates the IDW interpolation.
 
-```{r, cache=TRUE, eval = FALSE}
+```{r}
 ## Create IDW model
 idw_model <- gstat::gstat(
   formula = elevation ~ 1,
@@ -279,7 +278,7 @@ river_surface <- terra::interpolate(
 
 The relative elevation model is nothing more than the subtraction of the river interpolation raster by the digital elevation model.
 
-```{r, eval = FALSE}
+```{r}
 # Creates the REM
 rem <- dem_rast - river_surface
 
@@ -291,7 +290,7 @@ rem_final <- terra::resample(
 
 ## Visualize
 
-```{r, eval = FALSE}
+```{r}
 rem_df <- as.data.frame(
     rem_final,
     xy = TRUE
@@ -304,7 +303,7 @@ names(rem_df)[3] <- "elevation"
 
 Computes elevation's logarithms.
 
-```{r eval=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
+```{r}
 
 epsilon <- 1e-10
 
@@ -325,7 +324,7 @@ breaks <- classInt::classIntervals(
 
 Create the pallette
 
-```{r, eval = FALSE}
+```{r}
 ### Let`s make a quick plot to visualize the REM
 
 #Create a pallette 
@@ -342,7 +341,7 @@ pie(rep(
 pal <- cols[c(1, 2:12)]
 ```
 
-```{r, eval = FALSE}
+```{r}
 ## Theme
 theme_for_vis <- function() {
     theme_minimal() +
@@ -373,7 +372,7 @@ theme_for_vis <- function() {
 
 Plot
 
-```{r,cache=TRUE, eval = FALSE}
+```{r}
 library(ggplot2)
 rem_plot <- ggplot(
     rem_df, aes(
@@ -397,7 +396,7 @@ rem_plot
 
 Easily creating a contour line for the REM mode
 
-```{r, eval = FALSE}
+```{r}
 ## Contour Line
 contour_line <- terra::contour(rem_final)
 ```
