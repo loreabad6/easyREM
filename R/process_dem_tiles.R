@@ -80,7 +80,7 @@ process_dem_tiles <- function(dem_files, verbose = FALSE) {
     current_res <- terra::res(rast_list[[i]])
     if (!all(current_res == target_res)) {
       if(verbose) message(sprintf("Resampling tile %d to match target resolution", i))
-      rast_list[[i]] <- terra::resample(rast_list[[i]], ref_rast,ef_rast, method = "bilinear")
+      rast_list[[i]] <- terra::resample(rast_list[[i]], ref_rast,ref_rast, method = "bilinear")
     }
   }
   return(rast_list)
