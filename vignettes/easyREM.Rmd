@@ -1,8 +1,11 @@
 ---
-output: html_notebook
+title: "Relative Elevation Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{easyREM}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
-
-# Relative Elevation Models
 
 Relative Elevation Models (REM) are a way to visualize and expose differences of elevation for a particular region of interest (ROI) and highlight patterns regarding land surface.
 
