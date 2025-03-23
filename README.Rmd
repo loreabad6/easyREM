@@ -44,7 +44,7 @@ sharing knowledge is a core principle of our society.
 ## Article
 
 For a more detailed introduction to REMs, the methodology behind them,
-and further reading, please refer to this Article. It also serves as a
+and further reading, please refer to vignette("easyREM"). It also serves as a
 guide to exploring the power of R Notebooks and the open-source R
 community.
 
