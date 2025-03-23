@@ -18,11 +18,15 @@ This notebook aims to help everyone interest in hydrology, water and urban manag
 
 First we install the easyREM library hosted on GitHub
 
-```{r, results='hide', echo=FALSE, message=FALSE}
+```{r eval=FALSE}
 library(remotes)
 remotes::install_github("emanuel-gf/easyREM")
+```
+
+```{r results='hide', echo=FALSE, message=FALSE}
 library(easyREM)
 ```
+
 
 ## Creating Boundaries (bbox)
 
