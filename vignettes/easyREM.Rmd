@@ -4,9 +4,9 @@ output: html_notebook
 
 # Relative Elevation Models
 
-Relative Digital Models (REM) are a way to visualized and exposed differences of elevation for a particular region of interest (ROI) and highlight patterns that regarding land surface.
+Relative Elevation Models (REM) are a way to visualize and expose differences of elevation for a particular region of interest (ROI) and highlight patterns regarding land surface.
 
-The REM are used as a methodology to delineating Planning-Level Channel Migration Zones, propoused by Washignton State Department of Ecology and regulate development within these areas on shoreline streams.
+REMs are used as a methodology to delineate Planning-Level Channel Migration Zones, proposed by Washington State Department of Ecology that regulate development within these areas on shoreline streams.
 
 [CMZ - Washington Ecology Dept.](https://apps.ecology.wa.gov/publications/documents/1406025.pdf)
 
@@ -16,11 +16,9 @@ This notebook aims to help everyone interest in hydrology, water and urban manag
 
 ## Libraries and dependencies
 
-First we install the easyREM library hosted in github.
+First we install the easyREM library hosted on GitHub
 
 ```{r, results='hide', echo=FALSE, message=FALSE}
-
-
 library(remotes)
 remotes::install_github("emanuel-gf/easyREM")
 library(easyREM)
@@ -50,7 +48,6 @@ bbox <- create_bbox(xmin, xmax, ymin, ymax,crs=crs)
 ## Visualizing the bbox
 mapview::mapviewOptions(fgb = FALSE, georaster = FALSE)
 mapview::mapview(bbox,alpha=0.1,map.types ='Esri.WorldImagery')
-
 ```
 
 ## DEM Data
@@ -91,7 +88,7 @@ For the purpose of this tutorial, the chosen ROI only requires one tile and does
 ## In case the bbox have only one tile.
 if (length(dem$elevation)==1) {
   dem_rast <- terra::rast(dem$elevation)
-  dem_rast <- terra::rast("rem_3DEPElevation_1_1.tif")
+  # dem_rast <- terra::rast("rem_3DEPElevation_1_1.tif")
 } else {
   ## For more than one tile is necessary to create a composition
   dem_rast <- process_dem_tiles(dem,verbose=TRUE)
@@ -116,7 +113,7 @@ if (length(dem$elevation)==1) {
 
 ## River Line
 
-In order to create REM objects, centerline of river channels are needed. Rivers data can be retrieved in many ways, the following process exemplifies how do it by:
+In order to create REM objects, the centerline of river channels are needed. Rivers data can be retrieved in many ways, the following process exemplifies how do it with:
 
 -   OSM DATA
 -   HydroSheeds
@@ -162,7 +159,7 @@ plot(
 
 ### HydroSheed
 
-Another way to retrieve a rivers shapefile is through the [HydroSheeds](https://www.hydrosheds.org) project. To facilitate the process, *easyREM* package contains a function that downloads it to your current folder as a .shp file. The function requires a region that is sourced from the HydroSheeds region mapping, which includes Global and regions such as Africa, South America, Asia, Australia/Oceania, Europe, and North America.
+Another way to retrieve a rivers shapefile is through the [HydroSheeds](https://www.hydrosheds.org) project. To facilitate the process, *easyREM* contains a function that downloads it to your current folder as a .shp file. The function requires a region that is sourced from the HydroSheeds region mapping, which includes Global and regions such as Africa, South America, Asia, Australia/Oceania, Europe, and North America.
 
 To determine where your region of interest is located according to the atlas provided by the HydroSheeds project, a function is called to check it.
 
@@ -188,7 +185,7 @@ The glossary of HydroRivers is:
 
 -   af = Africa
 
-To download all the respectivelly shapefiles from HydroSheeds project, the another function in *easyREM* function deals with it.
+To download all the respectivelly shapefiles from the HydroSheeds project,another function in *easyREM* function deals with it.
 
 ```{r, eval = FALSE}
 rivers_ar <- download_hydrorivers("na")
@@ -199,7 +196,7 @@ print(rivers_ar)
 Filter only where the boundary box intersects the Rivers geofiles.
 
 ```{r, eval = FALSE}
-rivers_intersect <- get_intersecting_rivers(rivers_ar,bbox)
+rivers_intersect <- st_intersecting_river(rivers_ar,bbox)
 ```
 
 Plot the WaterSheeds Rivers to compare with others Datasets.
@@ -223,9 +220,9 @@ For the purpose of this tutorial, we are going to use OSM data because it matche
 
 ## Extract Values
 
-Extracting elevation values is a strategy for populating points that matches the river shapefile with elevation from the DEM raster. It is an crucial step to develop the REM model.
+Extracting elevation values is a strategy for populating points that matches the river shapefile with elevation from the DEM raster. It is a crucial step to develop the REM model.
 
-Depending on your computational capacity, resampling the raster is needed it.
+Depending on your computational capacity, resampling the raster to a coarser resolution is needed.
 
 ```{r eval=FALSE, cache=TRUE}
 ## Resampling the raster in case your laptop can not process. 
