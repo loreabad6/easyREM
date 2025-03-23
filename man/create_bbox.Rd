@@ -24,7 +24,7 @@ An `sfc` object representing the bounding box polygon.
 This function creates a bounding box polygon based on the given minimum and maximum coordinates.
 }
 \examples{
-Create a bounding box
+# Create a bounding box
 bbox <- create_bbox(xmin = -180, xmax = 180, ymin = -90, ymax = 90, crs = 4326)
 bbox
 }

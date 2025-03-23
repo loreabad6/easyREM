@@ -14,7 +14,7 @@
 #' @export
 #'
 #' @examples
-#' Create a bounding box
+#' # Create a bounding box
 #' bbox <- create_bbox(xmin = -180, xmax = 180, ymin = -90, ymax = 90, crs = 4326)
 #' bbox
 create_bbox <- function(xmin, xmax, ymin, ymax, crs) {
