@@ -18,10 +18,14 @@ RoxygenNote: 7.3.2
 Imports: 
     sf,
     terra,
-    utils,
-    osmdata
+    utils
 Suggests: 
+    classInt,
+    ggplot2,
+    gstat,
     knitr,
-    rmarkdown
+    osmdata,
+    rmarkdown,
+    terrainr
 VignetteBuilder: knitr
 URL: https://emanuel-gf.github.io/easyREM/
